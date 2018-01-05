@@ -1,0 +1,36 @@
+{
+  "name": "tplink-adapter",
+  "version": "0.0.1",
+  "description": "TP-Link smart plug/bulb adapter plugin for Mozilla IoT Gateway",
+  "main": "adapter.py",
+  "keywords": [
+    "mozilla",
+    "iot",
+    "adapter",
+    "tplink",
+    "tp-link"
+  ],
+  "homepage": "https://github.com/mrstegeman/tplink-adapter",
+  "license": "MPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mrstegeman/tplink-adapter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mrstegeman/tplink-adapter/issues"
+  },
+  "files": [
+    "LICENSE",
+    "SHA256SUMS",
+    "lib",
+    "*.py"
+  ],
+  "moziot": {
+    "api": {
+      "min": 1,
+      "max": 1
+    },
+    "plugin": true,
+    "exec": "python3 main.py"
+  }
+}

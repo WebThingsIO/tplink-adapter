@@ -1,0 +1,6 @@
+*.pyc
+*.swp
+*.tgz
+lib/
+package/
+SHA256SUMS
