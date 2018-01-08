@@ -1,4 +1,8 @@
-from adapter import Adapter
+from os import path
+import sys
+sys.path.append(path.join(path.dirname(path.abspath(__file__)), 'lib'))
+
+from gateway_addon import Adapter
 
 
 class TPLinkAdapter(Adapter):

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 version=$(grep version package.json | cut -d: -f2 | cut -d\" -f2)
 
 rm -f SHA256SUMS
