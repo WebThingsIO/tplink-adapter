@@ -13,4 +13,6 @@ pip3 install -r requirements.txt -t lib
 rm -rf *.tgz package
 mkdir package
 cp -r lib LICENSE SHA256SUMS package.json *.py package/
+find package -type f -name '*.pyc' -delete
+find package -type d -empty -delete
 tar czf "tplink-adapter-${version}.tgz" package
