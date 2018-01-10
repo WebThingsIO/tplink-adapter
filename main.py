@@ -3,6 +3,7 @@
 from os import path
 import signal
 import sys
+import threading
 import time
 
 sys.path.append(path.join(path.dirname(path.abspath(__file__)), 'lib'))
@@ -12,6 +13,7 @@ from pyHS100 import Discover, SmartBulb, SmartPlug  # flake8: noqa
 
 _ADAPTER = None
 _TIMEOUT = 3
+_POLL_INTERVAL = 5
 
 
 class TPLinkProperty(Property):
@@ -42,6 +44,17 @@ class TPLinkProperty(Property):
 
         self.set_cached_value(value)
         self.device.notify_property_changed(self)
+
+    def poll(self):
+        """Poll the current value and update if necessary."""
+        if self.name == 'on':
+            value = self.device.hs100_dev.is_on
+        else:
+            return
+
+        if value != self.value:
+            self.set_cached_value(value)
+            self.device.notify_property_changed(self)
 
 
 class TPLinkDevice(Device):
@@ -74,6 +87,18 @@ class TPLinkDevice(Device):
             # TODO: power consumption, color, brightness, temperature
         else:
             self.type = 'unknown'
+
+        t = threading.Thread(target=self.poll)
+        t.daemon = True
+        t.start()
+
+    def poll(self):
+        """Poll the device for changes."""
+        while True:
+            time.sleep(_POLL_INTERVAL)
+
+            for prop in self.properties.values():
+                prop.poll()
 
 
 class TPLinkAdapter(Adapter):
