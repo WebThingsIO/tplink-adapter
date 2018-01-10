@@ -1,2 +1,3 @@
-pyHS100 ~= 0.3.0
+future
+pyHS100
 https://github.com/mozilla-iot/gateway-addon-python/releases/download/0.0.1/gateway_addon-0.0.1.tar.gz

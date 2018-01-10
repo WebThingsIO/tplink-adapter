@@ -6,10 +6,74 @@ import sys
 import time
 
 sys.path.append(path.join(path.dirname(path.abspath(__file__)), 'lib'))
-from gateway_addon import Adapter  # flake8: noqa
+from gateway_addon import Adapter, Device, Property  # flake8: noqa
+from pyHS100 import Discover, SmartBulb, SmartPlug  # flake8: noqa
 
 
 _ADAPTER = None
+_TIMEOUT = 3
+
+
+class TPLinkProperty(Property):
+    """TP-Link property type."""
+
+    def __init__(self, device, name, description, value):
+        """
+        Initialize the object.
+
+        device -- the Device this property belongs to
+        name -- name of the property
+        description -- description of the property, as a dictionary
+        value -- current value of this property
+        """
+        Property.__init__(self, device, name, description)
+        self.set_cached_value(value)
+
+    def set_value(self, value):
+        """
+        Set the current value of the property.
+
+        value -- the value to set
+        """
+        if self.name == 'on':
+            self.device.hs100_dev.state = 'ON' if value else 'OFF'
+        else:
+            return
+
+        self.set_cached_value(value)
+        self.device.notify_property_changed(self)
+
+
+class TPLinkDevice(Device):
+    """TP-Link device type."""
+
+    def __init__(self, adapter, _id, hs100_dev):
+        """
+        Initialize the object.
+
+        adapter -- the Adapter managing this device
+        hs100_dev -- the pyHS100 device object to initialize from
+        """
+        Device.__init__(self, adapter, _id)
+
+        self.hs100_dev = hs100_dev
+        self.description = hs100_dev.model
+        self.name = hs100_dev.alias
+        if not self.name:
+            self.name = self.description
+
+        if isinstance(hs100_dev, SmartPlug):
+            self.type = 'onOffSwitch'
+            self.properties['on'] = TPLinkProperty(
+                self, 'on', {'type': 'boolean'}, hs100_dev.is_on)
+            # TODO: power consumption
+        elif isinstance(hs100_dev, SmartBulb):
+            self.type = 'onOffSwitch'
+            self.properties['on'] = TPLinkProperty(
+                self, 'on', {'type': 'boolean'}, hs100_dev.is_on)
+            # TODO: power consumption, color, brightness, temperature
+        else:
+            self.type = 'unknown'
 
 
 class TPLinkAdapter(Adapter):
@@ -26,6 +90,32 @@ class TPLinkAdapter(Adapter):
                          'tplink-adapter',
                          'tplink-adapter',
                          verbose=verbose)
+
+        self.pairing = False
+        self.start_pairing(_TIMEOUT)
+
+    def start_pairing(self, timeout):
+        """
+        Start the pairing process.
+
+        timeout -- Timeout in seconds at which to quit pairing
+        """
+        self.pairing = True
+        for dev in Discover.discover(timeout=min(timeout, _TIMEOUT)).values():
+            if not self.pairing:
+                break
+
+            _id = 'tplink-' + dev.sys_info['deviceId']
+            if _id not in self.devices:
+                device = TPLinkDevice(self, _id, dev)
+                if device.type == 'unknown':
+                    continue
+
+                self.handle_device_added(device)
+
+    def cancel_pairing(self):
+        """Cancel the pairing process."""
+        self.pairing = False
 
 
 def cleanup(signum, frame):
