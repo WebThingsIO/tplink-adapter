@@ -1,15 +1,15 @@
 """TP-Link adapter for Mozilla IoT Gateway."""
 
+from gateway_addon import Adapter, Device, Property
 from os import path
+import gateway_addon
 import signal
 import sys
 import threading
 import time
 
 sys.path.append(path.join(path.dirname(path.abspath(__file__)), 'lib'))
-from gateway_addon import Adapter, Device, Property  # flake8: noqa
 from pyHS100 import Discover, SmartBulb, SmartPlug  # flake8: noqa
-import gateway_addon  # flake8: noqa
 
 
 _API_VERSION = {

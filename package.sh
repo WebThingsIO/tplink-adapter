@@ -8,7 +8,7 @@ rm -f SHA256SUMS
 sha256sum *.py LICENSE > SHA256SUMS
 rm -rf lib
 mkdir lib
-pip3 install -r requirements.txt -t lib
+pip3 install -r requirements.txt -t lib --no-binary pyHS100 --prefix ""
 
 rm -rf *.tgz package
 mkdir package
