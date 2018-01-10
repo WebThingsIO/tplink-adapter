@@ -23,7 +23,7 @@
     "LICENSE",
     "SHA256SUMS",
     "lib",
-    "*.py"
+    "main.py"
   ],
   "moziot": {
     "api": {
