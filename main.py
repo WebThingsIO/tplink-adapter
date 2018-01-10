@@ -9,8 +9,13 @@ import time
 sys.path.append(path.join(path.dirname(path.abspath(__file__)), 'lib'))
 from gateway_addon import Adapter, Device, Property  # flake8: noqa
 from pyHS100 import Discover, SmartBulb, SmartPlug  # flake8: noqa
+import gateway_addon  # flake8: noqa
 
 
+_API_VERSION = {
+    'min': 1,
+    'max': 1,
+}
 _ADAPTER = None
 _TIMEOUT = 3
 _POLL_INTERVAL = 5
@@ -152,6 +157,11 @@ def cleanup(signum, frame):
 
 
 if __name__ == '__main__':
+    if gateway_addon.API_VERSION < _API_VERSION['min'] or \
+            gateway_addon.API_VERSION > _API_VERSION['max']:
+        print('Unsupported API version.')
+        sys.exit(0)
+
     signal.signal(signal.SIGINT, cleanup)
     signal.signal(signal.SIGTERM, cleanup)
     _ADAPTER = TPLinkAdapter(verbose=True)
