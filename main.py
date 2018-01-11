@@ -151,7 +151,7 @@ class TPLinkAdapter(Adapter):
 def cleanup(signum, frame):
     """Clean up any resources before exiting."""
     if _ADAPTER is not None:
-        _ADAPTER.manager_proxy.close()
+        _ADAPTER.close_proxy()
 
     sys.exit(0)
 
@@ -159,13 +159,14 @@ def cleanup(signum, frame):
 if __name__ == '__main__':
     if gateway_addon.API_VERSION < _API_VERSION['min'] or \
             gateway_addon.API_VERSION > _API_VERSION['max']:
-        print('Unsupported API version.')
+        print('Unsupported API version.', flush=True)
         sys.exit(0)
 
     signal.signal(signal.SIGINT, cleanup)
     signal.signal(signal.SIGTERM, cleanup)
     _ADAPTER = TPLinkAdapter(verbose=True)
 
-    # Wait indefinitely.
-    while True:
-        time.sleep(60)
+    # Wait until the proxy stops running, indicating that the gateway shut us
+    # down.
+    while _ADAPTER.proxy_running():
+        time.sleep(5)
