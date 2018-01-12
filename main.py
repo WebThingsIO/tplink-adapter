@@ -2,6 +2,7 @@
 
 from gateway_addon import Adapter, Device, Property
 from os import path
+import colorsys
 import functools
 import gateway_addon
 import signal
@@ -19,9 +20,37 @@ _API_VERSION = {
 }
 _ADAPTER = None
 _TIMEOUT = 3
-_POLL_INTERVAL = 5
+_POLL_INTERVAL = 10
 
 print = functools.partial(print, flush=True)
+
+
+def hsv_to_rgb(h, s, v):
+    """
+    Convert an HSV tuple to an RGB hex string.
+
+    h -- hue (0-360)
+    s -- saturation (0-100)
+    v -- value (0-100)
+
+    Returns a hex RGB string, i.e. #123456.
+    """
+    r, g, b = tuple(int(i * 255)
+                    for i in colorsys.hsv_to_rgb(h / 360, s / 100, v / 100))
+    return '#{:02X}{:02X}{:02X}'.format(r, g, b)
+
+def rgb_to_hsv(rgb):
+    """
+    Convert an RGB hex string to an HSV tuple.
+
+    rgb -- RGB hex string, i.e. #123456
+
+    Returns an RGB tuple, i.e. (360, 100, 100).
+    """
+    rgb = rgb.lstrip('#')
+    r, g, b = tuple(int(rgb[i:i + 2], 16) / 255 for i in range(0, 6, 2))
+    h, s, v = colorsys.rgb_to_hsv(r, g, b)
+    return (int(h * 360), int(s * 100), int(v * 100))
 
 
 class TPLinkProperty(Property):
@@ -47,6 +76,10 @@ class TPLinkProperty(Property):
         """
         if self.name == 'on':
             self.device.hs100_dev.state = 'ON' if value else 'OFF'
+        elif self.name == 'color':
+            self.device.hs100_dev.hsv = rgb_to_hsv(value)
+        elif self.name == 'level':
+            self.device.hs100_dev.brightness = value
         else:
             return
 
@@ -57,6 +90,19 @@ class TPLinkProperty(Property):
         """Poll the current value and update if necessary."""
         if self.name == 'on':
             value = self.device.hs100_dev.is_on
+        elif self.name == 'instantaneousPower':
+            emeter = self.device.hs100_dev.get_emeter_realtime()
+            value = emeter['power']
+        elif self.name == 'voltage':
+            emeter = self.device.hs100_dev.get_emeter_realtime()
+            value = emeter['voltage']
+        elif self.name == 'current':
+            emeter = self.device.hs100_dev.get_emeter_realtime()
+            value = emeter['current']
+        elif self.name == 'color':
+            value = hsv_to_rgb(*self.device.hs100_dev.hsv)
+        elif self.name == 'level':
+            value = self.device.hs100_dev.brightness
         else:
             return
 
@@ -84,15 +130,57 @@ class TPLinkDevice(Device):
             self.name = self.description
 
         if isinstance(hs100_dev, SmartPlug):
-            self.type = 'onOffSwitch'
+            if hs100_dev.has_emeter:
+                self.type = 'smartPlug'
+
+                emeter = hs100_dev.get_emeter_realtime()
+                self.properties['instantaneousPower'] = \
+                    TPLinkProperty(self,
+                                   'instantaneousPower',
+                                   {'type': 'number', 'unit': 'watt'},
+                                   emeter['power'])
+                self.properties['voltage'] = \
+                    TPLinkProperty(self,
+                                   'voltage',
+                                   {'type': 'number', 'unit': 'volt'},
+                                   emeter['voltage'])
+                self.properties['current'] = \
+                    TPLinkProperty(self,
+                                   'current',
+                                   {'type': 'number', 'unit': 'ampere'},
+                                   emeter['current'])
+            else:
+                self.type = 'onOffSwitch'
+
             self.properties['on'] = TPLinkProperty(
                 self, 'on', {'type': 'boolean'}, hs100_dev.is_on)
-            # TODO: power consumption
+
         elif isinstance(hs100_dev, SmartBulb):
-            self.type = 'onOffSwitch'
+            if hs100_dev.is_dimmable:
+                if hs100_dev.is_color:
+                    self.type = 'dimmableColorLight'
+
+                    self.properties['color'] = \
+                        TPLinkProperty(self,
+                                       'color',
+                                       {'type': 'string'},
+                                       hsv_to_rgb(*hs100_dev.hsv))
+                else:
+                    self.type = 'dimmableLight'
+
+                self.properties['level'] = \
+                    TPLinkProperty(self,
+                                   'level',
+                                   {'type': 'number', 'unit': 'percent'},
+                                   hs100_dev.brightness)
+            else:
+                self.type = 'onOffLight'
+
             self.properties['on'] = TPLinkProperty(
                 self, 'on', {'type': 'boolean'}, hs100_dev.is_on)
-            # TODO: power consumption, color, brightness, temperature
+
+            # TODO: power consumption, temperature
+
         else:
             self.type = 'unknown'
 
