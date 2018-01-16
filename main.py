@@ -1,17 +1,15 @@
 """TP-Link adapter for Mozilla IoT Gateway."""
 
-from gateway_addon import Adapter, Device, Property
 from os import path
-import colorsys
 import functools
 import gateway_addon
 import signal
 import sys
-import threading
 import time
 
 sys.path.append(path.join(path.dirname(path.abspath(__file__)), 'lib'))
-from pyHS100 import Discover, SmartBulb, SmartPlug  # flake8: noqa
+
+from pkg.tplink_adapter import TPLinkAdapter  # flake8: noqa
 
 
 _API_VERSION = {
@@ -19,224 +17,8 @@ _API_VERSION = {
     'max': 1,
 }
 _ADAPTER = None
-_TIMEOUT = 3
-_POLL_INTERVAL = 10
 
 print = functools.partial(print, flush=True)
-
-
-def hsv_to_rgb(h, s, v):
-    """
-    Convert an HSV tuple to an RGB hex string.
-
-    h -- hue (0-360)
-    s -- saturation (0-100)
-    v -- value (0-100)
-
-    Returns a hex RGB string, i.e. #123456.
-    """
-    r, g, b = tuple(int(i * 255)
-                    for i in colorsys.hsv_to_rgb(h / 360, s / 100, v / 100))
-    return '#{:02X}{:02X}{:02X}'.format(r, g, b)
-
-def rgb_to_hsv(rgb):
-    """
-    Convert an RGB hex string to an HSV tuple.
-
-    rgb -- RGB hex string, i.e. #123456
-
-    Returns an RGB tuple, i.e. (360, 100, 100).
-    """
-    rgb = rgb.lstrip('#')
-    r, g, b = tuple(int(rgb[i:i + 2], 16) / 255 for i in range(0, 6, 2))
-    h, s, v = colorsys.rgb_to_hsv(r, g, b)
-    return (int(h * 360), int(s * 100), int(v * 100))
-
-
-class TPLinkProperty(Property):
-    """TP-Link property type."""
-
-    def __init__(self, device, name, description, value):
-        """
-        Initialize the object.
-
-        device -- the Device this property belongs to
-        name -- name of the property
-        description -- description of the property, as a dictionary
-        value -- current value of this property
-        """
-        Property.__init__(self, device, name, description)
-        self.set_cached_value(value)
-
-    def set_value(self, value):
-        """
-        Set the current value of the property.
-
-        value -- the value to set
-        """
-        if self.name == 'on':
-            self.device.hs100_dev.state = 'ON' if value else 'OFF'
-        elif self.name == 'color':
-            self.device.hs100_dev.hsv = rgb_to_hsv(value)
-        elif self.name == 'level':
-            self.device.hs100_dev.brightness = value
-        else:
-            return
-
-        self.set_cached_value(value)
-        self.device.notify_property_changed(self)
-
-    def poll(self):
-        """Poll the current value and update if necessary."""
-        if self.name == 'on':
-            value = self.device.hs100_dev.is_on
-        elif self.name == 'instantaneousPower':
-            emeter = self.device.hs100_dev.get_emeter_realtime()
-            value = emeter['power']
-        elif self.name == 'voltage':
-            emeter = self.device.hs100_dev.get_emeter_realtime()
-            value = emeter['voltage']
-        elif self.name == 'current':
-            emeter = self.device.hs100_dev.get_emeter_realtime()
-            value = emeter['current']
-        elif self.name == 'color':
-            value = hsv_to_rgb(*self.device.hs100_dev.hsv)
-        elif self.name == 'level':
-            value = self.device.hs100_dev.brightness
-        else:
-            return
-
-        if value != self.value:
-            self.set_cached_value(value)
-            self.device.notify_property_changed(self)
-
-
-class TPLinkDevice(Device):
-    """TP-Link device type."""
-
-    def __init__(self, adapter, _id, hs100_dev):
-        """
-        Initialize the object.
-
-        adapter -- the Adapter managing this device
-        hs100_dev -- the pyHS100 device object to initialize from
-        """
-        Device.__init__(self, adapter, _id)
-
-        self.hs100_dev = hs100_dev
-        self.description = hs100_dev.model
-        self.name = hs100_dev.alias
-        if not self.name:
-            self.name = self.description
-
-        if isinstance(hs100_dev, SmartPlug):
-            if hs100_dev.has_emeter:
-                self.type = 'smartPlug'
-
-                emeter = hs100_dev.get_emeter_realtime()
-                self.properties['instantaneousPower'] = \
-                    TPLinkProperty(self,
-                                   'instantaneousPower',
-                                   {'type': 'number', 'unit': 'watt'},
-                                   emeter['power'])
-                self.properties['voltage'] = \
-                    TPLinkProperty(self,
-                                   'voltage',
-                                   {'type': 'number', 'unit': 'volt'},
-                                   emeter['voltage'])
-                self.properties['current'] = \
-                    TPLinkProperty(self,
-                                   'current',
-                                   {'type': 'number', 'unit': 'ampere'},
-                                   emeter['current'])
-            else:
-                self.type = 'onOffSwitch'
-
-            self.properties['on'] = TPLinkProperty(
-                self, 'on', {'type': 'boolean'}, hs100_dev.is_on)
-
-        elif isinstance(hs100_dev, SmartBulb):
-            if hs100_dev.is_dimmable:
-                if hs100_dev.is_color:
-                    self.type = 'dimmableColorLight'
-
-                    self.properties['color'] = \
-                        TPLinkProperty(self,
-                                       'color',
-                                       {'type': 'string'},
-                                       hsv_to_rgb(*hs100_dev.hsv))
-                else:
-                    self.type = 'dimmableLight'
-
-                self.properties['level'] = \
-                    TPLinkProperty(self,
-                                   'level',
-                                   {'type': 'number', 'unit': 'percent'},
-                                   hs100_dev.brightness)
-            else:
-                self.type = 'onOffLight'
-
-            self.properties['on'] = TPLinkProperty(
-                self, 'on', {'type': 'boolean'}, hs100_dev.is_on)
-
-            # TODO: power consumption, temperature
-
-        else:
-            self.type = 'unknown'
-
-        t = threading.Thread(target=self.poll)
-        t.daemon = True
-        t.start()
-
-    def poll(self):
-        """Poll the device for changes."""
-        while True:
-            time.sleep(_POLL_INTERVAL)
-
-            for prop in self.properties.values():
-                prop.poll()
-
-
-class TPLinkAdapter(Adapter):
-    """Adapter for TP-Link smart home devices."""
-
-    def __init__(self, verbose=False):
-        """
-        Initialize the object.
-
-        verbose -- whether or not to enable verbose logging
-        """
-        self.name = self.__class__.__name__
-        Adapter.__init__(self,
-                         'tplink-adapter',
-                         'tplink-adapter',
-                         verbose=verbose)
-
-        self.pairing = False
-        self.start_pairing(_TIMEOUT)
-
-    def start_pairing(self, timeout):
-        """
-        Start the pairing process.
-
-        timeout -- Timeout in seconds at which to quit pairing
-        """
-        self.pairing = True
-        for dev in Discover.discover(timeout=min(timeout, _TIMEOUT)).values():
-            if not self.pairing:
-                break
-
-            _id = 'tplink-' + dev.sys_info['deviceId']
-            if _id not in self.devices:
-                device = TPLinkDevice(self, _id, dev)
-                if device.type == 'unknown':
-                    continue
-
-                self.handle_device_added(device)
-
-    def cancel_pairing(self):
-        """Cancel the pairing process."""
-        self.pairing = False
 
 
 def cleanup(signum, frame):
