@@ -5,7 +5,7 @@ set -e
 version=$(grep version package.json | cut -d: -f2 | cut -d\" -f2)
 
 rm -f SHA256SUMS
-sha256sum *.py LICENSE > SHA256SUMS
+sha256sum *.py pkg/*.py LICENSE > SHA256SUMS
 rm -rf lib
 mkdir lib
 pip3 install -r requirements.txt -t lib --no-binary pyHS100 --prefix ""
