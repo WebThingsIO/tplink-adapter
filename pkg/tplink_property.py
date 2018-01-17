@@ -48,11 +48,11 @@ class TPLinkPlugProperty(TPLinkProperty):
         if self.name == 'on':
             value = self.device.is_on(sysinfo)
         elif self.name == 'instantaneousPower':
-            value = emeter['power']
+            value = self.device.power(emeter)
         elif self.name == 'voltage':
-            value = emeter['voltage']
+            value = self.device.voltage(emeter)
         elif self.name == 'current':
-            value = emeter['current']
+            value = self.device.current(emeter)
         else:
             return
 

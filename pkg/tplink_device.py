@@ -56,21 +56,32 @@ class TPLinkPlug(TPLinkDevice):
 
             # emeter comes via a separate API call, so use it.
             emeter = hs100_dev.get_emeter_realtime()
-            self.properties['instantaneousPower'] = \
-                TPLinkPlugProperty(self,
-                                   'instantaneousPower',
-                                   {'type': 'number', 'unit': 'watt'},
-                                   emeter['power'])
-            self.properties['voltage'] = \
-                TPLinkPlugProperty(self,
-                                   'voltage',
-                                   {'type': 'number', 'unit': 'volt'},
-                                   emeter['voltage'])
-            self.properties['current'] = \
-                TPLinkPlugProperty(self,
-                                   'current',
-                                   {'type': 'number', 'unit': 'ampere'},
-                                   emeter['current'])
+            power = self.power(emeter)
+            if power is None:
+                self.type = 'onOffSwitch'
+            else:
+                self.properties['instantaneousPower'] = \
+                    TPLinkPlugProperty(self,
+                                       'instantaneousPower',
+                                       {'type': 'number', 'unit': 'watt'},
+                                       power)
+
+                voltage = self.voltage(emeter)
+                if voltage is not None:
+                    self.properties['voltage'] = \
+                        TPLinkPlugProperty(self,
+                                           'voltage',
+                                           {'type': 'number', 'unit': 'volt'},
+                                           voltage)
+
+                current = self.current(emeter)
+                if current is not None:
+                    self.properties['current'] = \
+                        TPLinkPlugProperty(self,
+                                           'current',
+                                           {'type': 'number',
+                                            'unit': 'ampere'},
+                                           current)
         else:
             self.type = 'onOffSwitch'
 
@@ -108,6 +119,51 @@ class TPLinkPlug(TPLinkDevice):
         """
         return bool(sysinfo['relay_state'])
 
+    @staticmethod
+    def power(emeter):
+        """
+        Determine the current power usage, in watts.
+
+        emeter -- current emeter dict for the device
+        """
+        if 'power' in emeter:
+            return emeter['power']
+
+        if 'power_mw' in emeter:
+            return emeter['power_mw'] / 1000
+
+        return None
+
+    @staticmethod
+    def voltage(emeter):
+        """
+        Determine the current voltage, in volts.
+
+        emeter -- current emeter dict for the device
+        """
+        if 'voltage' in emeter:
+            return emeter['voltage']
+
+        if 'voltage_mv' in emeter:
+            return emeter['voltage_mv'] / 1000
+
+        return None
+
+    @staticmethod
+    def current(emeter):
+        """
+        Determine the current current, in amperes.
+
+        emeter -- current emeter dict for the device
+        """
+        if 'current' in emeter:
+            return emeter['current']
+
+        if 'current_ma' in emeter:
+            return emeter['current_ma'] / 1000
+
+        return None
+
 
 class TPLinkBulb(TPLinkDevice):
     """TP-Link smart bulb type."""
@@ -142,7 +198,10 @@ class TPLinkBulb(TPLinkDevice):
             self.properties['level'] = \
                 TPLinkBulbProperty(self,
                                    'level',
-                                   {'type': 'number', 'unit': 'percent'},
+                                   {'type': 'number',
+                                    'unit': 'percent',
+                                    'min': 0,
+                                    'max': 100},
                                    self.brightness(state))
         else:
             self.type = 'onOffLight'
