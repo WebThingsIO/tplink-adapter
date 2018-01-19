@@ -52,14 +52,14 @@ class TPLinkPlug(TPLinkDevice):
         TPLinkDevice.__init__(self, adapter, _id, hs100_dev, sysinfo)
 
         if self.has_emeter(sysinfo):
-            self.type = 'smartPlug'
-
             # emeter comes via a separate API call, so use it.
             emeter = hs100_dev.get_emeter_realtime()
             power = self.power(emeter)
             if power is None:
                 self.type = 'onOffSwitch'
             else:
+                self.type = 'smartPlug'
+
                 self.properties['instantaneousPower'] = \
                     TPLinkPlugProperty(self,
                                        'instantaneousPower',
@@ -204,7 +204,16 @@ class TPLinkBulb(TPLinkDevice):
                                     'max': 100},
                                    self.brightness(state))
         else:
-            self.type = 'onOffLight'
+            if self.is_color(sysinfo):
+                self.type = 'onOffColorLight'
+
+                self.properties['color'] = \
+                    TPLinkBulbProperty(self,
+                                       'color',
+                                       {'type': 'string'},
+                                       hsv_to_rgb(*self.hsv(state)))
+            else:
+                self.type = 'onOffLight'
 
         self.properties['on'] = TPLinkBulbProperty(
             self, 'on', {'type': 'boolean'}, self.is_on(state))
