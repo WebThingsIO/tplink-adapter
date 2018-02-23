@@ -9,7 +9,7 @@ def hsv_to_rgb(h, s, v):
 
     h -- hue (0-360)
     s -- saturation (0-100)
-    v -- value (0-100)
+    v -- value (0-255)
 
     Returns a hex RGB string, i.e. #123456.
     """
@@ -24,7 +24,7 @@ def rgb_to_hsv(rgb):
 
     rgb -- RGB hex string, i.e. #123456
 
-    Returns an RGB tuple, i.e. (360, 100, 100).
+    Returns an RGB tuple, i.e. (360, 100, 255).
     """
     rgb = rgb.lstrip('#')
     r, g, b = tuple(int(rgb[i:i + 2], 16) / 255 for i in range(0, 6, 2))

@@ -14,7 +14,7 @@ from pkg.tplink_adapter import TPLinkAdapter  # flake8: noqa
 
 _API_VERSION = {
     'min': 1,
-    'max': 1,
+    'max': 2,
 }
 _ADAPTER = None
 
