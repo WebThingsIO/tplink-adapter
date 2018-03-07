@@ -2,6 +2,7 @@
 
 from gateway_addon import Device
 from pyHS100 import SmartDevice
+import gateway_addon
 import threading
 import time
 
@@ -183,17 +184,40 @@ class TPLinkBulb(TPLinkDevice):
         # call, so use it.
         state = hs100_dev.get_light_state()
 
-        if self.is_dimmable(sysinfo):
-            if self.is_color(sysinfo):
+        if self.is_color(sysinfo):
+            self.type = 'onOffColorLight'
+
+            self.properties['color'] = \
+                TPLinkBulbProperty(self,
+                                   'color',
+                                   {'type': 'string'},
+                                   hsv_to_rgb(*self.hsv(state)))
+        elif gateway_addon.API_VERSION >= 2 and \
+                self.is_variable_color_temp(sysinfo):
+            self.properties['colorTemperature'] = \
+                TPLinkBulbProperty(self,
+                                   'colorTemperature',
+                                   {'type': 'number',
+                                    'unit': 'kelvin',
+                                    'min': self.min_color_temp(sysinfo),
+                                    'max': self.max_color_temp(sysinfo)},
+                                   self.color_temp(state))
+
+            if self.is_dimmable(sysinfo):
                 self.type = 'dimmableColorLight'
 
-                self.properties['color'] = \
+                self.properties['level'] = \
                     TPLinkBulbProperty(self,
-                                       'color',
-                                       {'type': 'string'},
-                                       hsv_to_rgb(*self.hsv(state)))
+                                       'level',
+                                       {'type': 'number',
+                                        'unit': 'percent',
+                                        'min': 0,
+                                        'max': 100},
+                                       self.brightness(state))
             else:
-                self.type = 'dimmableLight'
+                self.type = 'onOffColorLight'
+        elif self.is_dimmable(sysinfo):
+            self.type = 'dimmableLight'
 
             self.properties['level'] = \
                 TPLinkBulbProperty(self,
@@ -204,21 +228,14 @@ class TPLinkBulb(TPLinkDevice):
                                     'max': 100},
                                    self.brightness(state))
         else:
-            if self.is_color(sysinfo):
-                self.type = 'onOffColorLight'
+            self.type = 'onOffLight'
 
-                self.properties['color'] = \
-                    TPLinkBulbProperty(self,
-                                       'color',
-                                       {'type': 'string'},
-                                       hsv_to_rgb(*self.hsv(state)))
-            else:
-                self.type = 'onOffLight'
+        self.properties['on'] = TPLinkBulbProperty(self,
+                                                   'on',
+                                                   {'type': 'boolean'},
+                                                   self.is_on(state))
 
-        self.properties['on'] = TPLinkBulbProperty(
-            self, 'on', {'type': 'boolean'}, self.is_on(state))
-
-        # TODO: power consumption, temperature
+        # TODO: power consumption
 
     def poll(self):
         """Poll the device for changes."""
@@ -251,6 +268,15 @@ class TPLinkBulb(TPLinkDevice):
         return bool(sysinfo['is_color'])
 
     @staticmethod
+    def is_variable_color_temp(sysinfo):
+        """
+        Determine whether or not the light is color-temp-changing.
+
+        sysinfo -- current sysinfo dict for the device
+        """
+        return bool(sysinfo['is_variable_color_temp'])
+
+    @staticmethod
     def is_on(light_state):
         """
         Determine whether or not the light is on.
@@ -258,6 +284,48 @@ class TPLinkBulb(TPLinkDevice):
         light_state -- current state of the light
         """
         return bool(light_state['on_off'])
+
+    @staticmethod
+    def color_temp(light_state):
+        """
+        Determine the current color temperature.
+
+        light_state -- current state of the light
+        """
+        if not TPLinkBulb.is_on(light_state):
+            light_state = light_state['dft_on_state']
+
+        return int(light_state['color_temp'])
+
+    @staticmethod
+    def min_color_temp(sysinfo):
+        """
+        Determine the minimum color temperature for the bulb.
+
+        sysinfo -- current sysinfo dict for the device
+        """
+        if sysinfo['model'].startswith('LB120'):
+            return 2700
+
+        if sysinfo['model'].startswith('LB130'):
+            return 2500
+
+        return 2700
+
+    @staticmethod
+    def max_color_temp(sysinfo):
+        """
+        Determine the maximum color temperature for the bulb.
+
+        sysinfo -- current sysinfo dict for the device
+        """
+        if sysinfo['model'].startswith('LB120'):
+            return 6500
+
+        if sysinfo['model'].startswith('LB130'):
+            return 9000
+
+        return 6500
 
     @staticmethod
     def hsv(light_state):

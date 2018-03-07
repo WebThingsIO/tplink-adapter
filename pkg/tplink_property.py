@@ -76,6 +76,10 @@ class TPLinkBulbProperty(TPLinkProperty):
             self.device.hs100_dev.hsv = rgb_to_hsv(value)
         elif self.name == 'level':
             self.device.hs100_dev.brightness = value
+        elif self.name == 'colorTemperature':
+            value = max(value, self.description['min'])
+            value = min(value, self.description['max'])
+            self.device.hs100_dev.color_temp = int(value)
         else:
             return
 
@@ -95,6 +99,8 @@ class TPLinkBulbProperty(TPLinkProperty):
             value = hsv_to_rgb(*self.device.hsv(light_state))
         elif self.name == 'level':
             value = self.device.brightness(light_state)
+        elif self.name == 'colorTemperature':
+            value = self.device.color_temp(light_state)
         else:
             return
 

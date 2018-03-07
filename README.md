@@ -13,11 +13,11 @@ TP-Link smart plug/bulb adapter for Mozilla IoT Gateway.
         * Represented as `smartPlug`
 * Smart bulbs
     * LB110 (HW version 2.0)
-        * Represented as `onOffLight`
-    * LB120 (HW version 1.0)
         * Represented as `dimmableLight`
-    * LB130 (HW version 1.0)
+    * LB120 (HW version 1.0)
         * Represented as `dimmableColorLight`
+    * LB130 (HW version 1.0)
+        * Represented as `onOffColorLight`
 * Smart switches
     * HS200 (HW version 2.0)
         * Represented as `onOffSwitch`
