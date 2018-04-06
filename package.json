@@ -1,6 +1,6 @@
 {
   "name": "tplink-adapter",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "TP-Link smart plug/bulb adapter plugin for Mozilla IoT Gateway",
   "author": "Mozilla IoT",
   "main": "main.py",

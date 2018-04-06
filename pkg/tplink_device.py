@@ -1,7 +1,7 @@
 """TP-Link adapter for Mozilla IoT Gateway."""
 
 from gateway_addon import Device
-from pyHS100 import SmartDevice
+from pyHS100 import SmartDevice, SmartDeviceException
 import gateway_addon
 import threading
 import time
@@ -93,13 +93,20 @@ class TPLinkPlug(TPLinkDevice):
         """Poll the device for changes."""
         while True:
             time.sleep(_POLL_INTERVAL)
-            sysinfo = self.hs100_dev.sys_info
-            if sysinfo is None:
-                continue
 
-            emeter = self.hs100_dev.get_emeter_realtime()
-            for prop in self.properties.values():
-                prop.update(sysinfo, emeter)
+            try:
+                sysinfo = self.hs100_dev.sys_info
+                if sysinfo is None:
+                    continue
+
+                emeter = None
+                if self.type == 'smartPlug':
+                    emeter = self.hs100_dev.get_emeter_realtime()
+
+                for prop in self.properties.values():
+                    prop.update(sysinfo, emeter)
+            except SmartDeviceException:
+                continue
 
     @staticmethod
     def has_emeter(sysinfo):
@@ -241,13 +248,17 @@ class TPLinkBulb(TPLinkDevice):
         """Poll the device for changes."""
         while True:
             time.sleep(_POLL_INTERVAL)
-            sysinfo = self.hs100_dev.sys_info
-            if sysinfo is None:
-                continue
 
-            state = self.hs100_dev.get_light_state()
-            for prop in self.properties.values():
-                prop.update(sysinfo, state)
+            try:
+                sysinfo = self.hs100_dev.sys_info
+                if sysinfo is None:
+                    continue
+
+                state = self.hs100_dev.get_light_state()
+                for prop in self.properties.values():
+                    prop.update(sysinfo, state)
+            except SmartDeviceException:
+                continue
 
     @staticmethod
     def is_dimmable(sysinfo):

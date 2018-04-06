@@ -1,6 +1,7 @@
 """TP-Link adapter for Mozilla IoT Gateway."""
 
 from gateway_addon import Property
+from pyHS100 import SmartDeviceException
 
 from .util import hsv_to_rgb, rgb_to_hsv
 
@@ -30,9 +31,12 @@ class TPLinkPlugProperty(TPLinkProperty):
 
         value -- the value to set
         """
-        if self.name == 'on':
-            self.device.hs100_dev.state = 'ON' if value else 'OFF'
-        else:
+        try:
+            if self.name == 'on':
+                self.device.hs100_dev.state = 'ON' if value else 'OFF'
+            else:
+                return
+        except SmartDeviceException:
             return
 
         self.set_cached_value(value)
@@ -70,17 +74,20 @@ class TPLinkBulbProperty(TPLinkProperty):
 
         value -- the value to set
         """
-        if self.name == 'on':
-            self.device.hs100_dev.state = 'ON' if value else 'OFF'
-        elif self.name == 'color':
-            self.device.hs100_dev.hsv = rgb_to_hsv(value)
-        elif self.name == 'level':
-            self.device.hs100_dev.brightness = value
-        elif self.name == 'colorTemperature':
-            value = max(value, self.description['min'])
-            value = min(value, self.description['max'])
-            self.device.hs100_dev.color_temp = int(value)
-        else:
+        try:
+            if self.name == 'on':
+                self.device.hs100_dev.state = 'ON' if value else 'OFF'
+            elif self.name == 'color':
+                self.device.hs100_dev.hsv = rgb_to_hsv(value)
+            elif self.name == 'level':
+                self.device.hs100_dev.brightness = value
+            elif self.name == 'colorTemperature':
+                value = max(value, self.description['min'])
+                value = min(value, self.description['max'])
+                self.device.hs100_dev.color_temp = int(value)
+            else:
+                return
+        except SmartDeviceException:
             return
 
         self.set_cached_value(value)
