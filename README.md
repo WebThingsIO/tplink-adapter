@@ -7,43 +7,32 @@ TP-Link smart plug/bulb adapter for Mozilla IoT Gateway.
 ## Tested and Working
 
 * Smart plugs
-    * HS105 (HW version 1.0)
-        * Represented as `onOffSwitch`
-    * HS110 (HW version 1.0)
-        * Represented as `smartPlug`
+    * HS105
+    * HS110
 * Smart bulbs
-    * LB110 (HW version 2.0)
-        * Represented as `dimmableLight`
-    * LB120 (HW version 1.0)
-        * Represented as `dimmableColorLight`
-    * LB130 (HW version 1.0)
-        * Represented as `onOffColorLight`
+    * LB110
+    * LB120
+    * LB130
 * Smart switches
-    * HS200 (HW version 2.0)
-        * Represented as `onOffSwitch`
+    * HS200
 
 ## Untested but _Should Work_
 
 * Smart plugs
-    * HS100 (all HW versions)
-    * HS105 (all other HW versions)
-    * HS110 (all other HW versions)
+    * HS100
+    * HS103
 * Smart bulbs
-    * LB100 (all HW versions)
-    * LB110 (all other HW versions)
-    * LB120 (all other HW versions)
-    * LB130 (all other HW versions)
-    * LB200 (all HW versions)
-    * LB230 (all HW versions)
+    * LB100
+    * LB200
+    * LB230
+* Smart switches
+    * HS210
+    * HS220
 
 # Unsupported Devices
 
-There's nothing technically preventing support for these devices, they just have not been tested at all and/or do not have corresponding Web Thing types.
+There's nothing technically preventing support for these devices, they just have not been tested at all.
 
-* Smart switches
-    * HS210
-* Cameras
-    * KC120
 * WiFi range extenders + smart plug
     * RE270K
     * RE370K
