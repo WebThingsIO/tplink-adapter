@@ -26,6 +26,7 @@ class TPLinkDevice(Device):
         sysinfo -- current sysinfo dict for the device
         """
         Device.__init__(self, adapter, _id)
+        self._type = []
 
         self.hs100_dev = hs100_dev
         self.description = sysinfo['model']
@@ -36,96 +37,6 @@ class TPLinkDevice(Device):
         t = threading.Thread(target=self.poll)
         t.daemon = True
         t.start()
-
-
-class TPLinkPlug(TPLinkDevice):
-    """TP-Link smart plug type."""
-
-    def __init__(self, adapter, _id, hs100_dev):
-        """
-        Initialize the object.
-
-        adapter -- the Adapter managing this device
-        _id -- ID of this device
-        hs100_dev -- the pyHS100 device object to initialize from
-        """
-        sysinfo = hs100_dev.sys_info
-        TPLinkDevice.__init__(self, adapter, _id, hs100_dev, sysinfo)
-
-        if self.has_emeter(sysinfo):
-            # emeter comes via a separate API call, so use it.
-            emeter = hs100_dev.get_emeter_realtime()
-            power = self.power(emeter)
-            if power is None:
-                self.type = 'onOffSwitch'
-            else:
-                self.type = 'smartPlug'
-
-                self.properties['instantaneousPower'] = \
-                    TPLinkPlugProperty(self,
-                                       'instantaneousPower',
-                                       {'type': 'number', 'unit': 'watt'},
-                                       power)
-
-                voltage = self.voltage(emeter)
-                if voltage is not None:
-                    self.properties['voltage'] = \
-                        TPLinkPlugProperty(self,
-                                           'voltage',
-                                           {'type': 'number', 'unit': 'volt'},
-                                           voltage)
-
-                current = self.current(emeter)
-                if current is not None:
-                    self.properties['current'] = \
-                        TPLinkPlugProperty(self,
-                                           'current',
-                                           {'type': 'number',
-                                            'unit': 'ampere'},
-                                           current)
-        else:
-            self.type = 'onOffSwitch'
-
-        self.properties['on'] = TPLinkPlugProperty(
-            self, 'on', {'type': 'boolean'}, self.is_on(sysinfo))
-
-    def poll(self):
-        """Poll the device for changes."""
-        while True:
-            time.sleep(_POLL_INTERVAL)
-
-            try:
-                sysinfo = self.hs100_dev.sys_info
-                if sysinfo is None:
-                    continue
-
-                emeter = None
-                if self.type == 'smartPlug':
-                    emeter = self.hs100_dev.get_emeter_realtime()
-
-                for prop in self.properties.values():
-                    prop.update(sysinfo, emeter)
-            except SmartDeviceException:
-                continue
-
-    @staticmethod
-    def has_emeter(sysinfo):
-        """
-        Determine whether or not the plug has power monitoring.
-
-        sysinfo -- current sysinfo dict for the device
-        """
-        features = sysinfo['feature'].split(':')
-        return SmartDevice.FEATURE_ENERGY_METER in features
-
-    @staticmethod
-    def is_on(sysinfo):
-        """
-        Determine whether or not the light is on.
-
-        sysinfo -- current sysinfo dict for the device
-        """
-        return bool(sysinfo['relay_state'])
 
     @staticmethod
     def power(emeter):
@@ -173,6 +84,160 @@ class TPLinkPlug(TPLinkDevice):
         return None
 
 
+class TPLinkPlug(TPLinkDevice):
+    """TP-Link smart plug type."""
+
+    def __init__(self, adapter, _id, hs100_dev):
+        """
+        Initialize the object.
+
+        adapter -- the Adapter managing this device
+        _id -- ID of this device
+        hs100_dev -- the pyHS100 device object to initialize from
+        """
+        sysinfo = hs100_dev.sys_info
+        TPLinkDevice.__init__(self, adapter, _id, hs100_dev, sysinfo)
+        self._type.append('OnOffSwitch')
+
+        has_emeter = False
+        has_level = False
+
+        if self.has_emeter(sysinfo):
+            # emeter comes via a separate API call, so use it.
+            emeter = hs100_dev.get_emeter_realtime()
+
+            power = self.power(emeter)
+            if power is not None:
+                has_emeter = True
+                self._type.extend(['EnergyMonitor', 'SmartPlug'])
+
+                self.properties['instantaneousPower'] = TPLinkPlugProperty(
+                    self,
+                    'instantaneousPower',
+                    {
+                        '@type': 'InstantaneousPowerProperty',
+                        'label': 'Power',
+                        'type': 'number',
+                        'unit': 'watt',
+                    },
+                    power)
+
+            voltage = self.voltage(emeter)
+            if voltage is not None:
+                self.properties['voltage'] = TPLinkPlugProperty(
+                    self,
+                    'voltage',
+                    {
+                        '@type': 'VoltageProperty',
+                        'label': 'Voltage',
+                        'type': 'number',
+                        'unit': 'volt',
+                    },
+                    voltage)
+
+            current = self.current(emeter)
+            if current is not None:
+                self.properties['current'] = TPLinkPlugProperty(
+                    self,
+                    'current',
+                    {
+                        '@type': 'CurrentProperty',
+                        'label': 'Current',
+                        'type': 'number',
+                        'unit': 'ampere',
+                    },
+                    current)
+
+        if self.is_dimmable(sysinfo):
+            has_level = True
+            self._type.append('MultiLevelSwitch')
+            self.properties['level'] = TPLinkPlugProperty(
+                self,
+                'level',
+                {
+                    '@type': 'LevelProperty',
+                    'label': 'Level',
+                    'type': 'number',
+                    'unit': 'percent',
+                    'min': 0,
+                    'max': 100,
+                },
+                self.brightness(sysinfo))
+
+        self.properties['on'] = TPLinkPlugProperty(
+            self,
+            'on',
+            {
+                '@type': 'OnOffProperty',
+                'label': 'On/Off',
+                'type': 'boolean',
+            },
+            self.is_on(sysinfo))
+
+        if has_emeter:
+            self.type = 'smartPlug'
+        elif has_level:
+            self.type = 'multiLevelSwitch'
+        else:
+            self.type = 'onOffSwitch'
+
+    def poll(self):
+        """Poll the device for changes."""
+        while True:
+            time.sleep(_POLL_INTERVAL)
+
+            try:
+                sysinfo = self.hs100_dev.sys_info
+                if sysinfo is None:
+                    continue
+
+                emeter = None
+                if self.has_emeter(sysinfo):
+                    emeter = self.hs100_dev.get_emeter_realtime()
+
+                for prop in self.properties.values():
+                    prop.update(sysinfo, emeter)
+            except SmartDeviceException:
+                continue
+
+    @staticmethod
+    def has_emeter(sysinfo):
+        """
+        Determine whether or not the plug has power monitoring.
+
+        sysinfo -- current sysinfo dict for the device
+        """
+        features = sysinfo['feature'].split(':')
+        return SmartDevice.FEATURE_ENERGY_METER in features
+
+    @staticmethod
+    def is_on(sysinfo):
+        """
+        Determine whether or not the light is on.
+
+        sysinfo -- current sysinfo dict for the device
+        """
+        return bool(sysinfo['relay_state'])
+
+    @staticmethod
+    def is_dimmable(sysinfo):
+        """
+        Determine whether or not the switch is dimmable.
+
+        sysinfo -- current sysinfo dict for the device
+        """
+        return 'brightness' in sysinfo
+
+    @staticmethod
+    def brightness(sysinfo):
+        """
+        Determine the current level of the switch.
+
+        sysinfo -- current sysinfo dict for the device
+        """
+        return int(sysinfo['brightness'])
+
+
 class TPLinkBulb(TPLinkDevice):
     """TP-Link smart bulb type."""
 
@@ -186,63 +251,124 @@ class TPLinkBulb(TPLinkDevice):
         """
         sysinfo = hs100_dev.sys_info
         TPLinkDevice.__init__(self, adapter, _id, hs100_dev, sysinfo)
+        self._type.extend(['OnOffSwitch', 'Light'])
 
         # Light state, i.e. color, brightness, on/off, comes via a separate API
         # call, so use it.
         state = hs100_dev.get_light_state()
 
-        if self.is_color(sysinfo):
-            self.type = 'onOffColorLight'
+        has_color = False
+        has_level = False
 
-            self.properties['color'] = \
-                TPLinkBulbProperty(self,
-                                   'color',
-                                   {'type': 'string'},
-                                   hsv_to_rgb(*self.hsv(state)))
+        if self.is_color(sysinfo):
+            has_color = True
+            self._type.append('ColorControl')
+
+            self.properties['color'] = TPLinkBulbProperty(
+                self,
+                'color',
+                {
+                    '@type': 'ColorProperty',
+                    'label': 'Color',
+                    'type': 'string',
+                },
+                hsv_to_rgb(*self.hsv(state)))
         elif gateway_addon.API_VERSION >= 2 and \
                 self.is_variable_color_temp(sysinfo):
-            self.properties['colorTemperature'] = \
-                TPLinkBulbProperty(self,
-                                   'colorTemperature',
-                                   {'type': 'number',
-                                    'unit': 'kelvin',
-                                    'min': self.min_color_temp(sysinfo),
-                                    'max': self.max_color_temp(sysinfo)},
-                                   self.color_temp(state))
+            has_color = True
+            self._type.append('ColorControl')
 
-            if self.is_dimmable(sysinfo):
-                self.type = 'dimmableColorLight'
+            temp_range = hs100_dev.valid_temperature_range
 
-                self.properties['level'] = \
-                    TPLinkBulbProperty(self,
-                                       'level',
-                                       {'type': 'number',
-                                        'unit': 'percent',
-                                        'min': 0,
-                                        'max': 100},
-                                       self.brightness(state))
-            else:
-                self.type = 'onOffColorLight'
-        elif self.is_dimmable(sysinfo):
+            self.properties['colorTemperature'] = TPLinkBulbProperty(
+                self,
+                'colorTemperature',
+                {
+                    '@type': 'ColorTemperatureProperty',
+                    'label': 'Color Temperature',
+                    'type': 'number',
+                    'unit': 'kelvin',
+                    'min': temp_range[0],
+                    'max': temp_range[1],
+                },
+                self.color_temp(state))
+
+        if self.is_dimmable(sysinfo):
+            self.properties['level'] = TPLinkBulbProperty(
+                self,
+                'level',
+                {
+                    '@type': 'BrightnessProperty',
+                    'label': 'Brightness',
+                    'type': 'number',
+                    'unit': 'percent',
+                    'min': 0,
+                    'max': 100,
+                },
+                self.brightness(state))
+
+        # emeter comes via a separate API call, so use it.
+        emeter = hs100_dev.get_emeter_realtime()
+
+        power = self.power(emeter)
+        if power is not None:
+            self._type.append('EnergyMonitor')
+
+            self.properties['instantaneousPower'] = TPLinkBulbProperty(
+                self,
+                'instantaneousPower',
+                {
+                    '@type': 'InstantaneousPowerProperty',
+                    'label': 'Power',
+                    'type': 'number',
+                    'unit': 'watt',
+                },
+                power)
+
+        voltage = self.voltage(emeter)
+        if voltage is not None:
+            self.properties['voltage'] = TPLinkBulbProperty(
+                self,
+                'voltage',
+                {
+                    '@type': 'VoltageProperty',
+                    'label': 'Voltage',
+                    'type': 'number',
+                    'unit': 'volt',
+                },
+                voltage)
+
+        current = self.current(emeter)
+        if current is not None:
+            self.properties['current'] = TPLinkBulbProperty(
+                self,
+                'current',
+                {
+                    '@type': 'CurrentProperty',
+                    'label': 'Current',
+                    'type': 'number',
+                    'unit': 'ampere',
+                },
+                current)
+
+        self.properties['on'] = TPLinkBulbProperty(
+            self,
+            'on',
+            {
+                '@type': 'OnOffProperty',
+                'label': 'On/Off',
+                'type': 'boolean',
+            },
+            self.is_on(state))
+
+        if has_color and has_level:
+            self.type = 'dimmableColorLight'
+        elif has_color:
+            self.type = 'onOffColorLight'
+        elif has_level:
             self.type = 'dimmableLight'
-
-            self.properties['level'] = \
-                TPLinkBulbProperty(self,
-                                   'level',
-                                   {'type': 'number',
-                                    'unit': 'percent',
-                                    'min': 0,
-                                    'max': 100},
-                                   self.brightness(state))
         else:
             self.type = 'onOffLight'
-
-        self.properties['on'] = TPLinkBulbProperty(self,
-                                                   'on',
-                                                   {'type': 'boolean'},
-                                                   self.is_on(state))
-
-        # TODO: power consumption
 
     def poll(self):
         """Poll the device for changes."""
@@ -254,9 +380,11 @@ class TPLinkBulb(TPLinkDevice):
                 if sysinfo is None:
                     continue
 
+                emeter = self.hs100_dev.get_emeter_realtime()
                 state = self.hs100_dev.get_light_state()
+
                 for prop in self.properties.values():
-                    prop.update(sysinfo, state)
+                    prop.update(sysinfo, state, emeter)
             except SmartDeviceException:
                 continue
 
@@ -307,36 +435,6 @@ class TPLinkBulb(TPLinkDevice):
             light_state = light_state['dft_on_state']
 
         return int(light_state['color_temp'])
-
-    @staticmethod
-    def min_color_temp(sysinfo):
-        """
-        Determine the minimum color temperature for the bulb.
-
-        sysinfo -- current sysinfo dict for the device
-        """
-        if sysinfo['model'].startswith('LB120'):
-            return 2700
-
-        if sysinfo['model'].startswith('LB130'):
-            return 2500
-
-        return 2700
-
-    @staticmethod
-    def max_color_temp(sysinfo):
-        """
-        Determine the maximum color temperature for the bulb.
-
-        sysinfo -- current sysinfo dict for the device
-        """
-        if sysinfo['model'].startswith('LB120'):
-            return 6500
-
-        if sysinfo['model'].startswith('LB130'):
-            return 9000
-
-        return 6500
 
     @staticmethod
     def hsv(light_state):

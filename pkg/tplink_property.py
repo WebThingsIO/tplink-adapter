@@ -34,6 +34,8 @@ class TPLinkPlugProperty(TPLinkProperty):
         try:
             if self.name == 'on':
                 self.device.hs100_dev.state = 'ON' if value else 'OFF'
+            elif self.name == 'level':
+                self.device.hs100_dev.brightness = value
             else:
                 return
         except SmartDeviceException:
@@ -51,6 +53,8 @@ class TPLinkPlugProperty(TPLinkProperty):
         """
         if self.name == 'on':
             value = self.device.is_on(sysinfo)
+        elif self.name == 'level':
+            value = self.device.brightness(sysinfo)
         elif self.name == 'instantaneousPower':
             value = self.device.power(emeter)
         elif self.name == 'voltage':
@@ -93,12 +97,13 @@ class TPLinkBulbProperty(TPLinkProperty):
         self.set_cached_value(value)
         self.device.notify_property_changed(self)
 
-    def update(self, sysinfo, light_state):
+    def update(self, sysinfo, light_state, emeter):
         """
         Update the current value, if necessary.
 
         sysinfo -- current sysinfo dict for the device
         light_state -- current state of the light
+        emeter -- current emeter for the device
         """
         if self.name == 'on':
             value = self.device.is_on(light_state)
@@ -108,6 +113,12 @@ class TPLinkBulbProperty(TPLinkProperty):
             value = self.device.brightness(light_state)
         elif self.name == 'colorTemperature':
             value = self.device.color_temp(light_state)
+        elif self.name == 'instantaneousPower':
+            value = self.device.power(emeter)
+        elif self.name == 'voltage':
+            value = self.device.voltage(emeter)
+        elif self.name == 'current':
+            value = self.device.current(emeter)
         else:
             return
 
