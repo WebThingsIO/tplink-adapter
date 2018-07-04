@@ -100,7 +100,6 @@ class TPLinkPlug(TPLinkDevice):
         self._type.append('OnOffSwitch')
 
         has_emeter = False
-        has_level = False
 
         if self.has_emeter(sysinfo):
             # emeter comes via a separate API call, so use it.
@@ -149,7 +148,6 @@ class TPLinkPlug(TPLinkDevice):
                     current)
 
         if self.is_dimmable(sysinfo):
-            has_level = True
             self._type.append('MultiLevelSwitch')
             self.properties['level'] = TPLinkPlugProperty(
                 self,
@@ -176,7 +174,7 @@ class TPLinkPlug(TPLinkDevice):
 
         if has_emeter:
             self.type = 'smartPlug'
-        elif has_level:
+        elif self.is_dimmable(sysinfo):
             self.type = 'multiLevelSwitch'
         else:
             self.type = 'onOffSwitch'
@@ -257,11 +255,7 @@ class TPLinkBulb(TPLinkDevice):
         # call, so use it.
         state = hs100_dev.get_light_state()
 
-        has_color = False
-        has_level = False
-
         if self.is_color(sysinfo):
-            has_color = True
             self._type.append('ColorControl')
 
             self.properties['color'] = TPLinkBulbProperty(
@@ -275,7 +269,6 @@ class TPLinkBulb(TPLinkDevice):
                 hsv_to_rgb(*self.hsv(state)))
         elif gateway_addon.API_VERSION >= 2 and \
                 self.is_variable_color_temp(sysinfo):
-            has_color = True
             self._type.append('ColorControl')
 
             temp_range = hs100_dev.valid_temperature_range
@@ -293,7 +286,7 @@ class TPLinkBulb(TPLinkDevice):
                 },
                 self.color_temp(state))
 
-        if self.is_dimmable(sysinfo):
+        if self.is_dimmable(sysinfo) and not self.is_color(sysinfo):
             self.properties['level'] = TPLinkBulbProperty(
                 self,
                 'level',
@@ -361,11 +354,15 @@ class TPLinkBulb(TPLinkDevice):
             },
             self.is_on(state))
 
-        if has_color and has_level:
-            self.type = 'dimmableColorLight'
-        elif has_color:
+        if self.is_color(sysinfo):
             self.type = 'onOffColorLight'
-        elif has_level:
+        elif gateway_addon.API_VERSION >= 2 and \
+                self.is_variable_color_temp(sysinfo):
+            if self.is_dimmable(sysinfo):
+                self.type = 'dimmableColorLight'
+            else:
+                self.type = 'onOffColorLight'
+        elif self.is_dimmable(sysinfo):
             self.type = 'dimmableLight'
         else:
             self.type = 'onOffLight'
