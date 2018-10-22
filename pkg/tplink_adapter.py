@@ -1,6 +1,6 @@
 """TP-Link adapter for Mozilla IoT Gateway."""
 
-from gateway_addon import Adapter
+from gateway_addon import Adapter, Database
 from pyHS100 import Discover, SmartBulb, SmartPlug
 
 from .tplink_device import TPLinkBulb, TPLinkPlug
@@ -25,7 +25,39 @@ class TPLinkAdapter(Adapter):
                          verbose=verbose)
 
         self.pairing = False
+        self.add_from_config()
         self.start_pairing(_TIMEOUT)
+
+    def add_from_config(self):
+        """Attempt to add all configured devices."""
+        database = Database('tplink-adapter')
+        if not database.open():
+            return
+
+        config = database.load_config()
+        database.close()
+
+        if not config or 'addresses' not in config:
+            return
+
+        for address in config['addresses']:
+            try:
+                dev = Discover.discover_single(address)
+            except (OSError, UnboundLocalError) as e:
+                print('Failed to connect to {}: {}'.format(address, e))
+                continue
+
+            if dev:
+                _id = 'tplink-' + dev.sys_info['deviceId']
+                if _id not in self.devices:
+                    if isinstance(dev, SmartPlug):
+                        device = TPLinkPlug(self, _id, dev)
+                    elif isinstance(dev, SmartBulb):
+                        device = TPLinkBulb(self, _id, dev)
+                    else:
+                        continue
+
+                    self.handle_device_added(device)
 
     def start_pairing(self, timeout):
         """

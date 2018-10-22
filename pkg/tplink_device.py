@@ -2,7 +2,6 @@
 
 from gateway_addon import Device
 from pyHS100 import SmartDevice, SmartDeviceException
-import gateway_addon
 import threading
 import time
 
@@ -267,8 +266,7 @@ class TPLinkBulb(TPLinkDevice):
                     'type': 'string',
                 },
                 hsv_to_rgb(*self.hsv(state)))
-        elif gateway_addon.API_VERSION >= 2 and \
-                self.is_variable_color_temp(sysinfo):
+        elif self.is_variable_color_temp(sysinfo):
             self._type.append('ColorControl')
 
             temp_range = hs100_dev.valid_temperature_range
@@ -356,8 +354,7 @@ class TPLinkBulb(TPLinkDevice):
 
         if self.is_color(sysinfo):
             self.type = 'onOffColorLight'
-        elif gateway_addon.API_VERSION >= 2 and \
-                self.is_variable_color_temp(sysinfo):
+        elif self.is_variable_color_temp(sysinfo):
             if self.is_dimmable(sysinfo):
                 self.type = 'dimmableColorLight'
             else:
