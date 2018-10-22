@@ -43,7 +43,8 @@ class TPLinkAdapter(Adapter):
         for address in config['addresses']:
             try:
                 dev = Discover.discover_single(address)
-            except (OSError, UnboundLocalError):
+            except (OSError, UnboundLocalError) as e:
+                print('Failed to connect to {}: {}'.format(address, e))
                 continue
 
             if dev:
