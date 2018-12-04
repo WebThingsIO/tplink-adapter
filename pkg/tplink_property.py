@@ -86,8 +86,8 @@ class TPLinkBulbProperty(TPLinkProperty):
             elif self.name == 'level':
                 self.device.hs100_dev.brightness = value
             elif self.name == 'colorTemperature':
-                value = max(value, self.description['min'])
-                value = min(value, self.description['max'])
+                value = max(value, self.description['minimum'])
+                value = min(value, self.description['maximum'])
                 self.device.hs100_dev.color_temp = int(value)
             else:
                 return

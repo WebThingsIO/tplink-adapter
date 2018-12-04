@@ -156,8 +156,8 @@ class TPLinkPlug(TPLinkDevice):
                     'label': 'Level',
                     'type': 'number',
                     'unit': 'percent',
-                    'min': 0,
-                    'max': 100,
+                    'minimum': 0,
+                    'maximum': 100,
                 },
                 self.brightness(sysinfo))
 
@@ -279,8 +279,8 @@ class TPLinkBulb(TPLinkDevice):
                     'label': 'Color Temperature',
                     'type': 'number',
                     'unit': 'kelvin',
-                    'min': temp_range[0],
-                    'max': temp_range[1],
+                    'minimum': temp_range[0],
+                    'maximum': temp_range[1],
                 },
                 self.color_temp(state))
 
@@ -293,8 +293,8 @@ class TPLinkBulb(TPLinkDevice):
                     'label': 'Brightness',
                     'type': 'number',
                     'unit': 'percent',
-                    'min': 0,
-                    'max': 100,
+                    'minimum': 0,
+                    'maximum': 100,
                 },
                 self.brightness(state))
 

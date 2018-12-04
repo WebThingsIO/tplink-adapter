@@ -24,9 +24,9 @@ def rgb_to_hsv(rgb):
 
     rgb -- RGB hex string, i.e. #123456
 
-    Returns an RGB tuple, i.e. (360, 100, 255).
+    Returns an RGB tuple, i.e. (360, 100, 100).
     """
     rgb = rgb.lstrip('#')
     r, g, b = tuple(int(rgb[i:i + 2], 16) / 255 for i in range(0, 6, 2))
     h, s, v = colorsys.rgb_to_hsv(r, g, b)
-    return (int(h * 360), int(s * 100), int(v * 255))
+    return (int(h * 360), int(s * 100), int(v * 100))
