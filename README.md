@@ -16,6 +16,7 @@ TP-Link smart plug/bulb adapter for Mozilla IoT Gateway.
     * LB130
 * Smart switches
     * HS200
+    * HS210
 
 ## Untested but _Should Work_
 
@@ -32,7 +33,6 @@ TP-Link smart plug/bulb adapter for Mozilla IoT Gateway.
     * KL120
     * KL130
 * Smart switches
-    * HS210
     * HS220
 
 # Unsupported Devices
