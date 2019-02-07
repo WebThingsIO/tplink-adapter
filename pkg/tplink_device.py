@@ -154,7 +154,7 @@ class TPLinkPlug(TPLinkDevice):
                 {
                     '@type': 'LevelProperty',
                     'label': 'Level',
-                    'type': 'number',
+                    'type': 'integer',
                     'unit': 'percent',
                     'minimum': 0,
                     'maximum': 100,
@@ -170,6 +170,15 @@ class TPLinkPlug(TPLinkDevice):
                 'type': 'boolean',
             },
             self.is_on(sysinfo))
+
+        self.properties['led-on'] = TPLinkPlugProperty(
+            self,
+            'led-on',
+            {
+                'label': 'LED On/Off',
+                'type': 'boolean',
+            },
+            self.is_led_on(sysinfo))
 
         if has_emeter:
             self.type = 'smartPlug'
@@ -210,11 +219,20 @@ class TPLinkPlug(TPLinkDevice):
     @staticmethod
     def is_on(sysinfo):
         """
-        Determine whether or not the light is on.
+        Determine whether or not the switch is on.
 
         sysinfo -- current sysinfo dict for the device
         """
         return bool(sysinfo['relay_state'])
+
+    @staticmethod
+    def is_led_on(sysinfo):
+        """
+        Determine whether or not the LED is on.
+
+        sysinfo -- current sysinfo dict for the device
+        """
+        return bool(1 - sysinfo['led_off'])
 
     @staticmethod
     def is_dimmable(sysinfo):
@@ -277,7 +295,7 @@ class TPLinkBulb(TPLinkDevice):
                 {
                     '@type': 'ColorTemperatureProperty',
                     'label': 'Color Temperature',
-                    'type': 'number',
+                    'type': 'integer',
                     'unit': 'kelvin',
                     'minimum': temp_range[0],
                     'maximum': temp_range[1],
@@ -291,7 +309,7 @@ class TPLinkBulb(TPLinkDevice):
                 {
                     '@type': 'BrightnessProperty',
                     'label': 'Brightness',
-                    'type': 'number',
+                    'type': 'integer',
                     'unit': 'percent',
                     'minimum': 0,
                     'maximum': 100,
