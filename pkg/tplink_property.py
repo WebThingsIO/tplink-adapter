@@ -34,6 +34,8 @@ class TPLinkPlugProperty(TPLinkProperty):
         try:
             if self.name == 'on':
                 self.device.hs100_dev.state = 'ON' if value else 'OFF'
+            elif self.name == 'led-on':
+                self.device.hs100_dev.led = value
             elif self.name == 'level':
                 self.device.hs100_dev.brightness = value
             else:
@@ -53,6 +55,8 @@ class TPLinkPlugProperty(TPLinkProperty):
         """
         if self.name == 'on':
             value = self.device.is_on(sysinfo)
+        elif self.name == 'led-on':
+            value = self.device.is_led_on(sysinfo)
         elif self.name == 'level':
             value = self.device.brightness(sysinfo)
         elif self.name == 'instantaneousPower':
