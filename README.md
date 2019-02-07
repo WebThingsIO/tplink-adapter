@@ -39,6 +39,7 @@ TP-Link smart plug/bulb adapter for Mozilla IoT Gateway.
 
 There's nothing technically preventing support for these devices, they just have not been tested at all.
 
+* Smart plugs/power strips with multiple outlets
 * WiFi range extenders + smart plug
 * Cameras
 * Video door bells
