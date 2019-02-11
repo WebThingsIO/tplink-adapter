@@ -69,17 +69,17 @@ class TPLinkAdapter(Adapter):
 
         dev -- the device object from pyHS100
         """
+        if isinstance(dev, SmartStrip):
+            for idx, plug in dev.plugs.items():
+                _id = 'tplink-' + dev.sys_info['children'][idx]['id']
+                if _id not in self.devices:
+                    device = TPLinkPlug(self, _id, plug, index=idx)
+                    self.handle_device_added(device)
+
+            return
+
         _id = 'tplink-' + dev.sys_info['deviceId']
         if _id not in self.devices:
-            if isinstance(dev, SmartStrip):
-                for idx, plug in dev.plugs.items():
-                    _id = 'tplink-' + dev.sys_info['children'][idx]['id']
-                    if _id not in self.devices:
-                        device = TPLinkPlug(self, _id, plug, index=idx)
-                        self.handle_device_added(device)
-
-                return
-
             if isinstance(dev, SmartPlug):
                 device = TPLinkPlug(self, _id, dev)
             elif isinstance(dev, SmartBulb):
