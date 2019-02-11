@@ -15,21 +15,27 @@ _POLL_INTERVAL = 5
 class TPLinkDevice(Device):
     """TP-Link device type."""
 
-    def __init__(self, adapter, _id, hs100_dev, sysinfo):
+    def __init__(self, adapter, _id, hs100_dev, index=-1):
         """
         Initialize the object.
 
         adapter -- the Adapter managing this device
         _id -- ID of this device
         hs100_dev -- the pyHS100 device object to initialize from
-        sysinfo -- current sysinfo dict for the device
+        index -- index inside parent device
         """
         Device.__init__(self, adapter, _id)
         self._type = []
 
         self.hs100_dev = hs100_dev
-        self.description = sysinfo['model']
-        self.name = sysinfo['alias']
+        self.index = index
+        self.description = hs100_dev.sys_info['model']
+
+        if index >= 0:
+            self.name = hs100_dev.sys_info['children'][index]['alias']
+        else:
+            self.name = hs100_dev.sys_info['alias']
+
         if not self.name:
             self.name = self.description
 
@@ -86,19 +92,24 @@ class TPLinkDevice(Device):
 class TPLinkPlug(TPLinkDevice):
     """TP-Link smart plug type."""
 
-    def __init__(self, adapter, _id, hs100_dev):
+    def __init__(self, adapter, _id, hs100_dev, index=-1):
         """
         Initialize the object.
 
         adapter -- the Adapter managing this device
         _id -- ID of this device
         hs100_dev -- the pyHS100 device object to initialize from
+        index -- index inside parent device
         """
-        sysinfo = hs100_dev.sys_info
-        TPLinkDevice.__init__(self, adapter, _id, hs100_dev, sysinfo)
+        TPLinkDevice.__init__(self,
+                              adapter,
+                              _id,
+                              hs100_dev,
+                              index=index)
         self._type.append('OnOffSwitch')
 
         has_emeter = False
+        sysinfo = hs100_dev.sys_info
 
         if self.has_emeter(sysinfo):
             # emeter comes via a separate API call, so use it.
@@ -216,13 +227,15 @@ class TPLinkPlug(TPLinkDevice):
         features = sysinfo['feature'].split(':')
         return SmartDevice.FEATURE_ENERGY_METER in features
 
-    @staticmethod
-    def is_on(sysinfo):
+    def is_on(self, sysinfo):
         """
         Determine whether or not the switch is on.
 
         sysinfo -- current sysinfo dict for the device
         """
+        if self.index >= 0:
+            return bool(sysinfo['children'][self.index]['state'])
+
         return bool(sysinfo['relay_state'])
 
     @staticmethod
@@ -256,21 +269,26 @@ class TPLinkPlug(TPLinkDevice):
 class TPLinkBulb(TPLinkDevice):
     """TP-Link smart bulb type."""
 
-    def __init__(self, adapter, _id, hs100_dev):
+    def __init__(self, adapter, _id, hs100_dev, index=-1):
         """
         Initialize the object.
 
         adapter -- the Adapter managing this device
         _id -- ID of this device
         hs100_dev -- the pyHS100 device object to initialize from
+        index -- index inside parent device
         """
-        sysinfo = hs100_dev.sys_info
-        TPLinkDevice.__init__(self, adapter, _id, hs100_dev, sysinfo)
+        TPLinkDevice.__init__(self,
+                              adapter,
+                              _id,
+                              hs100_dev,
+                              index=index)
         self._type.extend(['OnOffSwitch', 'Light'])
 
         # Light state, i.e. color, brightness, on/off, comes via a separate API
         # call, so use it.
         state = hs100_dev.get_light_state()
+        sysinfo = hs100_dev.sys_info
 
         if self.is_color(sysinfo):
             self._type.append('ColorControl')
