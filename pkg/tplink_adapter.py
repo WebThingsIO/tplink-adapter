@@ -1,7 +1,7 @@
 """TP-Link adapter for Mozilla IoT Gateway."""
 
 from gateway_addon import Adapter, Database
-from pyHS100 import Discover, SmartBulb, SmartPlug
+from pyHS100 import Discover, SmartBulb, SmartPlug, SmartStrip
 
 from .tplink_device import TPLinkBulb, TPLinkPlug
 
@@ -48,16 +48,7 @@ class TPLinkAdapter(Adapter):
                 continue
 
             if dev:
-                _id = 'tplink-' + dev.sys_info['deviceId']
-                if _id not in self.devices:
-                    if isinstance(dev, SmartPlug):
-                        device = TPLinkPlug(self, _id, dev)
-                    elif isinstance(dev, SmartBulb):
-                        device = TPLinkBulb(self, _id, dev)
-                    else:
-                        continue
-
-                    self.handle_device_added(device)
+                self._add_device(dev)
 
     def start_pairing(self, timeout):
         """
@@ -70,16 +61,33 @@ class TPLinkAdapter(Adapter):
             if not self.pairing:
                 break
 
-            _id = 'tplink-' + dev.sys_info['deviceId']
-            if _id not in self.devices:
-                if isinstance(dev, SmartPlug):
-                    device = TPLinkPlug(self, _id, dev)
-                elif isinstance(dev, SmartBulb):
-                    device = TPLinkBulb(self, _id, dev)
-                else:
-                    continue
+            self._add_device(dev)
 
-                self.handle_device_added(device)
+    def _add_device(self, dev):
+        """
+        Add the given device, if necessary.
+
+        dev -- the device object from pyHS100
+        """
+        _id = 'tplink-' + dev.sys_info['deviceId']
+        if _id not in self.devices:
+            if isinstance(dev, SmartStrip):
+                for idx, plug in dev.plugs.items():
+                    _id = 'tplink-' + dev.sys_info['children'][idx]['id']
+                    if _id not in self.devices:
+                        device = TPLinkPlug(self, _id, plug, index=idx)
+                        self.handle_device_added(device)
+
+                return
+
+            if isinstance(dev, SmartPlug):
+                device = TPLinkPlug(self, _id, dev)
+            elif isinstance(dev, SmartBulb):
+                device = TPLinkBulb(self, _id, dev)
+            else:
+                return
+
+            self.handle_device_added(device)
 
     def cancel_pairing(self):
         """Cancel the pairing process."""

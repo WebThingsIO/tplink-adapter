@@ -9,11 +9,11 @@ import time
 
 sys.path.append(path.join(path.dirname(path.abspath(__file__)), 'lib'))
 
-from pkg.tplink_adapter import TPLinkAdapter  # flake8: noqa
+from pkg.tplink_adapter import TPLinkAdapter  # noqa
 
 
 _API_VERSION = {
-    'min': 1,
+    'min': 2,
     'max': 2,
 }
 _ADAPTER = None
