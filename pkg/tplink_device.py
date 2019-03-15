@@ -111,6 +111,10 @@ class TPLinkPlug(TPLinkDevice):
         has_emeter = False
         sysinfo = hs100_dev.sys_info
 
+        if 'dev_name' not in sysinfo or \
+                'Light Switch' not in sysinfo['dev_name']:
+            self._type.append('SmartPlug')
+
         if self.has_emeter(sysinfo):
             # emeter comes via a separate API call, so use it.
             emeter = hs100_dev.get_emeter_realtime()
@@ -118,7 +122,7 @@ class TPLinkPlug(TPLinkDevice):
             power = self.power(emeter)
             if power is not None:
                 has_emeter = True
-                self._type.extend(['EnergyMonitor', 'SmartPlug'])
+                self._type.append('EnergyMonitor')
 
                 self.properties['instantaneousPower'] = TPLinkPlugProperty(
                     self,
