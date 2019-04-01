@@ -1,4 +1,4 @@
-"""TP-Link adapter for Mozilla IoT Gateway."""
+"""TP-Link adapter for Mozilla WebThings Gateway."""
 
 from os import path
 import functools
