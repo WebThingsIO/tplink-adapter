@@ -56,12 +56,17 @@ class TPLinkAdapter(Adapter):
 
         timeout -- Timeout in seconds at which to quit pairing
         """
+        if self.pairing:
+            return
+
         self.pairing = True
         for dev in Discover.discover(timeout=min(timeout, _TIMEOUT)).values():
             if not self.pairing:
                 break
 
             self._add_device(dev)
+
+        self.pairing = False
 
     def _add_device(self, dev):
         """
