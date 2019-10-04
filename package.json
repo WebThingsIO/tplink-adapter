@@ -1,7 +1,7 @@
 {
   "name": "tplink-adapter",
   "display_name": "TP-Link",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "TP-Link smart plug/bulb adapter plugin for Mozilla WebThings Gateway",
   "author": "Mozilla IoT",
   "main": "main.py",
@@ -23,9 +23,11 @@
   },
   "files": [
     "LICENSE",
+    "README.md",
     "SHA256SUMS",
     "lib",
     "main.py",
+    "manifest.json",
     "pkg/__init__.py",
     "pkg/tplink_adapter.py",
     "pkg/tplink_device.py",
