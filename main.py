@@ -2,7 +2,6 @@
 
 from os import path
 import functools
-import gateway_addon
 import signal
 import sys
 import time
@@ -12,10 +11,6 @@ sys.path.append(path.join(path.dirname(path.abspath(__file__)), 'lib'))
 from pkg.tplink_adapter import TPLinkAdapter  # noqa
 
 
-_API_VERSION = {
-    'min': 2,
-    'max': 2,
-}
 _ADAPTER = None
 
 print = functools.partial(print, flush=True)
@@ -30,11 +25,6 @@ def cleanup(signum, frame):
 
 
 if __name__ == '__main__':
-    if gateway_addon.API_VERSION < _API_VERSION['min'] or \
-            gateway_addon.API_VERSION > _API_VERSION['max']:
-        print('Unsupported API version.')
-        sys.exit(0)
-
     signal.signal(signal.SIGINT, cleanup)
     signal.signal(signal.SIGTERM, cleanup)
     _ADAPTER = TPLinkAdapter(verbose=True)
