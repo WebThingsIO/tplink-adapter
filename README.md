@@ -8,6 +8,7 @@ TP-Link smart plug/bulb adapter for Mozilla WebThings Gateway.
 
 * Smart plugs
     * HS100
+    * HS103
     * HS105
     * HS107
     * HS110
@@ -24,7 +25,6 @@ TP-Link smart plug/bulb adapter for Mozilla WebThings Gateway.
 
 * Smart plugs
     * KP100
-    * HS103
 * Smart bulbs
     * LB100
     * LB200
