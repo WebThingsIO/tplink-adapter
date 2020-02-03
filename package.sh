@@ -1,6 +1,4 @@
-#!/bin/bash
-
-set -e
+#!/bin/bash -e
 
 version=$(grep version package.json | cut -d: -f2 | cut -d\" -f2)
 
@@ -20,8 +18,13 @@ find package -type d -empty -delete
 
 # Generate checksums
 cd package
-find . -type f \! -name SHA256SUMS -exec sha256sum {} \; >> SHA256SUMS
+find . -type f \! -name SHA256SUMS -exec shasum --algorithm 256 {} \; >> SHA256SUMS
 cd -
 
 # Make the tarball
-tar czf "tplink-adapter-${version}.tgz" package
+TARFILE="tplink-adapter-${version}.tgz"
+tar czf ${TARFILE} package
+
+shasum --algorithm 256 ${TARFILE} > ${TARFILE}.sha256sum
+
+rm -rf SHA256SUMS package

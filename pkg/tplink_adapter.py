@@ -25,10 +25,9 @@ class TPLinkAdapter(Adapter):
                          verbose=verbose)
 
         self.pairing = False
-        self.add_from_config()
         self.start_pairing(_TIMEOUT)
 
-    def add_from_config(self):
+    def _add_from_config(self):
         """Attempt to add all configured devices."""
         database = Database('tplink-adapter')
         if not database.open():
@@ -60,6 +59,9 @@ class TPLinkAdapter(Adapter):
             return
 
         self.pairing = True
+
+        self._add_from_config()
+
         for dev in Discover.discover(timeout=min(timeout, _TIMEOUT)).values():
             if not self.pairing:
                 break
