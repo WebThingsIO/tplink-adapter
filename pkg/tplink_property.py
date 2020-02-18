@@ -82,17 +82,41 @@ class TPLinkBulbProperty(TPLinkProperty):
 
         value -- the value to set
         """
+        color_mode_prop = None
+        if 'colorMode' in self.device.properties:
+            color_mode_prop = self.device.properties['colorMode']
+
+        level_prop = None
+        if 'level' in self.device.properties:
+            level_prop = self.device.properties['level']
+
         try:
             if self.name == 'on':
                 self.device.hs100_dev.state = 'ON' if value else 'OFF'
             elif self.name == 'color':
-                self.device.hs100_dev.hsv = rgb_to_hsv(value)
+                hsv = rgb_to_hsv(value)
+                self.device.hs100_dev.hsv = hsv
+
+                # update the level property
+                if level_prop is not None:
+                    level_prop.set_cached_value(hsv[2])
+                    self.device.notify_property_changed(level_prop)
+
+                # update the colorMode property
+                if color_mode_prop is not None:
+                    color_mode_prop.set_cached_value('color')
+                    self.device.notify_property_changed(color_mode_prop)
             elif self.name == 'level':
                 self.device.hs100_dev.brightness = value
             elif self.name == 'colorTemperature':
                 value = max(value, self.description['minimum'])
                 value = min(value, self.description['maximum'])
                 self.device.hs100_dev.color_temp = int(value)
+
+                # update the colorMode property
+                if color_mode_prop is not None:
+                    color_mode_prop.set_cached_value('temperature')
+                    self.device.notify_property_changed(color_mode_prop)
             else:
                 return
         except SmartDeviceException:
@@ -117,6 +141,8 @@ class TPLinkBulbProperty(TPLinkProperty):
             value = self.device.brightness(light_state)
         elif self.name == 'colorTemperature':
             value = self.device.color_temp(light_state)
+        elif self.name == 'colorMode':
+            value = self.device.color_mode(light_state)
         elif self.name == 'instantaneousPower':
             value = self.device.power(emeter)
         elif self.name == 'voltage':
