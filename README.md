@@ -1,6 +1,6 @@
 # tplink-adapter
 
-TP-Link smart plug/bulb adapter for Mozilla WebThings Gateway.
+TP-Link Kasa smart plug/bulb adapter for Mozilla WebThings Gateway.
 
 # Supported Devices
 
@@ -39,11 +39,17 @@ TP-Link smart plug/bulb adapter for Mozilla WebThings Gateway.
 
 # Unsupported Devices
 
+## Kasa
+
 There's nothing technically preventing support for these devices, they just have not been tested at all.
 
 * WiFi range extenders + smart plug
 * Cameras
 * Video door bells
+
+## Tapo
+
+TP-Link Tapo devices will **NOT** work, as they use an entirely different protocol.
 
 # Requirements
 

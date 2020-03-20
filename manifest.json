@@ -1,6 +1,6 @@
 {
   "author": "Mozilla IoT",
-  "description": "TP-Link smart plug/bulb adapter plugin for Mozilla WebThings Gateway",
+  "description": "TP-Link Kasa smart plug/bulb adapter plugin for Mozilla WebThings Gateway",
   "gateway_specific_settings": {
     "webthings": {
       "exec": "python3 {path}/main.py",
@@ -13,7 +13,7 @@
   "id": "tplink-adapter",
   "license": "MPL-2.0",
   "manifest_version": 1,
-  "name": "TP-Link",
+  "name": "TP-Link Kasa",
   "options": {
     "default": {
       "addresses": []
@@ -33,6 +33,6 @@
       }
     }
   },
-  "short_name": "TP-Link",
+  "short_name": "TP-Link Kasa",
   "version": "0.5.1"
 }
