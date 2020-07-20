@@ -1,1 +1,2 @@
-pyHS100==0.3.5
+git+https://github.com/mrstegeman/click-datetime#egg=click-datetime
+pyHS100==0.3.5.1

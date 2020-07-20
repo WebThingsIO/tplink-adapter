@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-version=$(grep version package.json | cut -d: -f2 | cut -d\" -f2)
+version=$(grep '"version"' manifest.json | cut -d: -f2 | cut -d\" -f2)
 
 # Clean up from previous releases
 rm -rf *.tgz package SHA256SUMS lib
@@ -9,10 +9,10 @@ rm -rf *.tgz package SHA256SUMS lib
 mkdir lib package
 
 # Pull down Python dependencies
-pip3 install -r requirements.txt -t lib --no-binary pyHS100 --prefix ""
+pip3 install -r requirements.txt -t lib --no-binary :all: --prefix ""
 
 # Put package together
-cp -r lib pkg LICENSE manifest.json package.json *.py README.md package/
+cp -r lib pkg LICENSE manifest.json *.py README.md package/
 find package -type f -name '*.pyc' -delete
 find package -type d -empty -delete
 
