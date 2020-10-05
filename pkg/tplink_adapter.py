@@ -1,4 +1,4 @@
-"""TP-Link adapter for Mozilla WebThings Gateway."""
+"""TP-Link adapter for WebThings Gateway."""
 
 from gateway_addon import Adapter, Database
 from pyHS100 import Discover, SmartBulb, SmartPlug, SmartStrip

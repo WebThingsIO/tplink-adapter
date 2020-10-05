@@ -1,6 +1,6 @@
 # tplink-adapter
 
-TP-Link Kasa smart plug/bulb adapter for Mozilla WebThings Gateway.
+TP-Link Kasa smart plug/bulb adapter for WebThings Gateway.
 
 # Supported Devices
 
@@ -56,7 +56,5 @@ TP-Link Tapo devices will **NOT** work, as they use an entirely different protoc
 If you're running this add-on outside of the official gateway image for the Raspberry Pi, i.e. you're running on a development machine, you'll need to do the following (adapt as necessary for non-Ubuntu/Debian):
 
 ```
-sudo apt install python3-dev libnanomsg-dev
-sudo pip3 install nnpy
-sudo pip3 install git+https://github.com/mozilla-iot/gateway-addon-python.git
+sudo pip3 install git+https://github.com/WebThingsIO/gateway-addon-python.git
 ```

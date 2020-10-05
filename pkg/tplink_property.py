@@ -1,4 +1,4 @@
-"""TP-Link adapter for Mozilla WebThings Gateway."""
+"""TP-Link adapter for WebThings Gateway."""
 
 from gateway_addon import Property
 from pyHS100 import SmartDeviceException
